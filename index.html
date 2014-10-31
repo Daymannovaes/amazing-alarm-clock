@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title></title>
+	<script src="timbre.js"></script>
+
+	<style type="text/css">
+	h2 {
+		font-family: calibri;
+	}
+	</style>
+
+</head>
+<body style="background-color:rgb(60, 255, 185);">
+	<div style="position:fixed;left:25%;right:0;">
+		<h2>This is an amazing alarm to study!</h2>
+		seconds <input id="value" value="120"> <button onclick="init()">go</button>
+
+		<br><br>
+		remains: <span id="clock">0</span> | extras: <span id="extra">0</span> | count: <span id="count">0</span>
+
+		<br><br>
+		<button onclick="clickReset()">reset</button>
+		<button onclick="stop()">stop</button>
+		<button onclick="resume()">resume</button>
+		<button onclick="useExtra()">use extra</button>
+		<br>
+
+		<button onclick="if(window.confirm('tem certeza?')) localStorage.clear()">clear historic</button>
+		<button onclick="setHist()">set historic</button>
+		<button id="useless">useless button</button>
+
+		<br><br>
+		Made by <i>Dayman.</i>
+	</div>
+	<script>
+		var sine1 = T("sin", {freq:440, mul:0.5});
+		var sine2 = T("sin", {freq:660, mul:0.5});
+		var timeoutFn, intervalFn;
+		var value;
+		var clock, extra, count;
+		var play = false;
+
+		var element = {
+			value: document.getElementById("value"),
+			clock: document.getElementById("clock"),
+			count: document.getElementById("count"),
+			extra: document.getElementById("extra")
+		};
+
+		alarm = function() {	
+			T("perc", {r:500}, sine1, sine2).on("ended", function() {
+				this.pause();
+			}).bang().play();
+		}
+
+		init = function() {
+			value = parseInt(element.value.value)*1000;
+			count = 0;
+			extra = 0;
+
+			element.count.innerHTML = count;
+			element.extra.innerHTML = extra;
+
+			document.getElementById("useless").focus();
+
+			reset();
+		}
+
+		reset = function(sum, time) {
+			sum = sum || 0;
+
+			clearInterval(intervalFn);
+			clearTimeout(timeoutFn);
+			setClock(sum, time);
+
+			play = true;
+			timeoutFn = setTimeout(function() {
+				addCount();
+				clearInterval(intervalFn);
+				alarm();
+
+				setTimeout(function() {
+					alarm();
+					setTimeout(function() {
+						alarm();
+						reset();
+					}, 300);
+				}, 300);
+			}, time*1000 || (value + sum*1000));
+		}
+
+		useExtra = function() {
+			reset(clock);
+			extra -= (value/1000);
+			element.extra.innerHTML = extra;
+		}
+
+		setClock = function(sum, time) {
+			clock = time || (value/1000 + sum);
+			element.clock.innerHTML = clock;
+
+			intervalFn = setInterval(function() {
+				element.clock.innerHTML = --clock;
+			}, 999);
+		}
+
+		stop = function() {
+			play = false;
+			clearInterval(intervalFn);
+			clearTimeout(timeoutFn);
+		}
+
+		resume = function() {
+			play || reset(null, clock);
+		}
+
+		addExtra = function() {
+			extra = extra || 0;
+			extra += clock;
+
+			element.extra.innerHTML = extra;
+		};
+
+		addCount = function() {
+			element.count.innerHTML = ++count;
+		};
+
+		clickReset = function() {
+			addExtra();
+			addCount();
+			reset();
+		};
+
+		var down = false;
+		window.onkeydown = function(key) {
+			console.log(key.which)
+			if(key.which == 82 && !down) {
+				clickReset();
+				down = true;
+			}
+			else if(key.which == 71) {
+				init();
+			}
+			else if(key.which == 69) {
+				useExtra();
+			}
+			else if(key.which == 83) {
+				stop();
+			}
+			else {
+				document.activeElement != element.value && (function(){element.value.value = ""})();
+				element.value.focus();
+			}
+		};
+		window.onkeyup = function(key) {
+			down = down && key.which != 82;
+		};
+
+		setHist = function() {
+			var last = parseInt(localStorage.getItem("last")) || -1;
+			last++;
+
+			var obj = {};
+
+			obj.date = new Date();
+			obj.remains = parseInt(element.clock.innerHTML);
+			obj.extra = parseInt(element.extra.innerHTML);
+			obj.count = parseInt(element.count.innerHTML);
+
+			obj.seconds = parseInt(element.value.value);
+
+			localStorage.setItem(last, JSON.stringify(obj));
+			localStorage.setItem("last", last);
+		};
+
+	</script>
+</body>
+</html>
